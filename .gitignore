@@ -1,0 +1,12 @@
+# Archivos temporales de Visual Studio / Analysis Services
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dwproj.user
+# Respaldos de base de datos (son muy pesados para GitHub)
+*.bak
+# Archivos temporales de Office / Power BI
+~$*

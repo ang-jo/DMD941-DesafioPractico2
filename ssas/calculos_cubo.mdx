@@ -1,0 +1,57 @@
+﻿/* =====================================================================
+   DMD941 - Desafío Práctico 2
+   Miembros calculados del cubo [CuboVentas]
+   ---------------------------------------------------------------------
+   Dónde se pega: Visual Studio > abre CuboVentas.cube > pestaña
+   "Cálculos" (Calculations) > botón "Vista de script" (Script View,
+   el ícono de hoja con texto). Pega este bloque DEBAJO de la línea
+   "CALCULATE;" (no la borres), guarda y vuelve a implementar (Deploy).
+   ===================================================================== */
+
+-- Totales de ambos canales. En MDX, NULL + valor = valor, así que una
+-- región sin ventas por Internet no anula el total.
+CREATE MEMBER CURRENTCUBE.[Measures].[Unidades Totales]
+ AS [Measures].[Cantidad Internet] + [Measures].[Cantidad Revendedor],
+ FORMAT_STRING = "#,##0",
+ VISIBLE = 1;
+
+CREATE MEMBER CURRENTCUBE.[Measures].[Ventas Totales]
+ AS [Measures].[Ventas Internet] + [Measures].[Ventas Revendedor],
+ FORMAT_STRING = "$#,##0.00",
+ VISIBLE = 1;
+
+CREATE MEMBER CURRENTCUBE.[Measures].[Costo Total]
+ AS [Measures].[Costo Internet] + [Measures].[Costo Revendedor],
+ FORMAT_STRING = "$#,##0.00",
+ VISIBLE = 1;
+
+CREATE MEMBER CURRENTCUBE.[Measures].[Utilidad Total]
+ AS [Measures].[Utilidad Internet] + [Measures].[Utilidad Revendedor],
+ FORMAT_STRING = "$#,##0.00",
+ VISIBLE = 1;
+
+-- Márgenes (rentabilidad relativa). IIF evita la división entre cero.
+CREATE MEMBER CURRENTCUBE.[Measures].[Margen Internet %]
+ AS IIF([Measures].[Ventas Internet] = 0, NULL,
+        [Measures].[Utilidad Internet] / [Measures].[Ventas Internet]),
+ FORMAT_STRING = "0.00%",
+ VISIBLE = 1;
+
+CREATE MEMBER CURRENTCUBE.[Measures].[Margen Revendedor %]
+ AS IIF([Measures].[Ventas Revendedor] = 0, NULL,
+        [Measures].[Utilidad Revendedor] / [Measures].[Ventas Revendedor]),
+ FORMAT_STRING = "0.00%",
+ VISIBLE = 1;
+
+CREATE MEMBER CURRENTCUBE.[Measures].[Margen Total %]
+ AS IIF([Measures].[Ventas Totales] = 0, NULL,
+        [Measures].[Utilidad Total] / [Measures].[Ventas Totales]),
+ FORMAT_STRING = "0.00%",
+ VISIBLE = 1;
+
+-- Participación del canal Internet en las ventas
+CREATE MEMBER CURRENTCUBE.[Measures].[% Ventas Internet]
+ AS IIF([Measures].[Ventas Totales] = 0, NULL,
+        [Measures].[Ventas Internet] / [Measures].[Ventas Totales]),
+ FORMAT_STRING = "0.00%",
+ VISIBLE = 1;

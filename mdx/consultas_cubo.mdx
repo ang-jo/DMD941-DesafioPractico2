@@ -1,0 +1,159 @@
+﻿/* =====================================================================
+   DMD941 - Desafío Práctico 2
+   Consultas MDX sobre el cubo [CuboVentas]
+   ---------------------------------------------------------------------
+   Cómo ejecutarlas: SSMS > Conectar > Analysis Services > localhost >
+   clic derecho en la base CuboVentasAW > Nueva consulta > MDX.
+   Selecciona UNA consulta (desde SELECT o WITH hasta el ";") y F5.
+
+   Recordatorio de sintaxis:
+   [Dimensión].[Atributo].[Atributo].Members  = todos los miembros sin "All"
+   [Dimensión].[Jerarquía].[Nivel].Members    = miembros de un nivel
+   NON EMPTY  = oculta filas/columnas sin datos
+   ===================================================================== */
+
+
+/* ---------------------------------------------------------------------
+   PREGUNTA (a): categorías y subcategorías con mayor volumen de ventas
+   por año, y su variación trimestre a trimestre.
+   --------------------------------------------------------------------- */
+
+-- (a.1) Unidades y ventas de cada categoría por año
+SELECT
+    NON EMPTY ( [Fecha].[Año].[Año].Members
+                * { [Measures].[Unidades Totales], [Measures].[Ventas Totales] } ) ON COLUMNS,
+    NON EMPTY ORDER( [Producto].[Categoría].[Categoría].Members,
+                     [Measures].[Ventas Totales], BDESC ) ON ROWS
+FROM [CuboVentas];
+
+
+-- (a.2) Las 3 subcategorías con más ventas en cada año
+--        GENERATE recorre los años y TOPCOUNT elige las 3 mejores de cada uno.
+SELECT
+    { [Measures].[Ventas Totales], [Measures].[Unidades Totales] } ON COLUMNS,
+    NON EMPTY GENERATE(
+        [Fecha].[Año].[Año].Members,
+        TOPCOUNT( { [Fecha].[Año].CurrentMember }
+                  * [Producto].[Subcategoría].[Subcategoría].Members,
+                  3,
+                  [Measures].[Ventas Totales] )
+    ) ON ROWS
+FROM [CuboVentas];
+
+
+-- (a.3) Tendencia trimestral por categoría y variación contra el trimestre anterior
+--        PrevMember en la jerarquía Calendario devuelve el trimestre previo,
+--        aunque pertenezca al año anterior (2012-T1 -> 2011-T4).
+WITH
+MEMBER [Measures].[Ventas Trim. Anterior] AS
+    ( [Measures].[Ventas Totales], [Fecha].[Calendario].CurrentMember.PrevMember ),
+    FORMAT_STRING = '$#,##0.00'
+MEMBER [Measures].[Variación %] AS
+    IIF( [Measures].[Ventas Trim. Anterior] = 0, NULL,
+         ( [Measures].[Ventas Totales] - [Measures].[Ventas Trim. Anterior] )
+           / [Measures].[Ventas Trim. Anterior] ),
+    FORMAT_STRING = '0.0%'
+SELECT
+    { [Measures].[Ventas Totales], [Measures].[Ventas Trim. Anterior], [Measures].[Variación %] } ON COLUMNS,
+    NON EMPTY ( [Producto].[Categoría].[Categoría].Members
+                * [Fecha].[Calendario].[Trimestre].Members ) ON ROWS
+FROM [CuboVentas];
+
+
+-- (a.4) Matriz subcategoría x trimestre (vista tipo tabla dinámica)
+SELECT
+    NON EMPTY [Fecha].[Calendario].[Trimestre].Members ON COLUMNS,
+    NON EMPTY ( [Producto].[Categorías].[Subcategoría].Members ) ON ROWS
+FROM [CuboVentas]
+WHERE ( [Measures].[Ventas Totales] );
+
+
+/* ---------------------------------------------------------------------
+   PREGUNTA (b): territorios con mayor rentabilidad, e Internet frente a
+   Revendedor en cada uno.
+   --------------------------------------------------------------------- */
+
+-- (b.1) Regiones ordenadas por utilidad, con ranking y comparación de canales
+WITH
+SET [Regiones por Utilidad] AS
+    ORDER( [Territorio].[Región].[Región].Members, [Measures].[Utilidad Total], BDESC )
+MEMBER [Measures].[Ranking] AS
+    RANK( [Territorio].[Región].CurrentMember, [Regiones por Utilidad] )
+MEMBER [Measures].[Canal más rentable] AS
+    IIF( [Measures].[Utilidad Internet] > [Measures].[Utilidad Revendedor],
+         'Internet', 'Revendedor' )
+SELECT
+    { [Measures].[Ranking],
+      [Measures].[Ventas Internet],   [Measures].[Ventas Revendedor],   [Measures].[Ventas Totales],
+      [Measures].[Utilidad Internet], [Measures].[Utilidad Revendedor], [Measures].[Utilidad Total],
+      [Measures].[Margen Total %],    [Measures].[% Ventas Internet],   [Measures].[Canal más rentable] } ON COLUMNS,
+    [Regiones por Utilidad] ON ROWS
+FROM [CuboVentas];
+
+
+-- (b.2) Misma comparación siguiendo la jerarquía Grupo > País > Región
+SELECT
+    { [Measures].[Ventas Internet], [Measures].[Ventas Revendedor],
+      [Measures].[Utilidad Total],  [Measures].[Margen Internet %],
+      [Measures].[Margen Revendedor %], [Measures].[Margen Total %] } ON COLUMNS,
+    NON EMPTY DESCENDANTS( [Territorio].[Geografía].[Grupo].Members,
+                           [Territorio].[Geografía].[Región],
+                           SELF_AND_BEFORE ) ON ROWS
+FROM [CuboVentas];
+
+
+-- (b.3) Utilidad por canal y región para cada año (¿la rentabilidad es estable?)
+SELECT
+    NON EMPTY ( [Fecha].[Año].[Año].Members
+                * { [Measures].[Utilidad Internet], [Measures].[Utilidad Revendedor] } ) ON COLUMNS,
+    NON EMPTY ORDER( [Territorio].[Región].[Región].Members,
+                     [Measures].[Utilidad Total], BDESC ) ON ROWS
+FROM [CuboVentas];
+
+
+/* ---------------------------------------------------------------------
+   PREGUNTA (c): los 10 productos más rentables y su distribución en el
+   tiempo (por año y trimestre).
+   --------------------------------------------------------------------- */
+
+-- (c.1) Top 10 productos por utilidad total
+SELECT
+    { [Measures].[Utilidad Total], [Measures].[Ventas Totales], [Measures].[Margen Total %],
+      [Measures].[Unidades Totales], [Measures].[Utilidad Internet], [Measures].[Utilidad Revendedor] } ON COLUMNS,
+    TOPCOUNT( [Producto].[Producto].[Producto].Members, 10, [Measures].[Utilidad Total] ) ON ROWS
+FROM [CuboVentas];
+
+
+-- (c.2) Ventas de cada producto del Top 10 por año y por trimestre
+--        DESCENDANTS(..., SELF_AND_BEFORE) muestra cada año seguido de sus trimestres.
+WITH
+SET [Top 10 Productos] AS
+    TOPCOUNT( [Producto].[Producto].[Producto].Members, 10, [Measures].[Utilidad Total] )
+SELECT
+    NON EMPTY DESCENDANTS( [Fecha].[Calendario].[Año].Members,
+                           [Fecha].[Calendario].[Trimestre],
+                           SELF_AND_BEFORE ) ON COLUMNS,
+    [Top 10 Productos] ON ROWS
+FROM [CuboVentas]
+WHERE ( [Measures].[Ventas Totales] );
+
+
+-- (c.3) El Top 10 en conjunto: ventas, utilidad y qué parte de la utilidad
+--        total de cada periodo aporta
+WITH
+SET [Top 10 Productos] AS
+    TOPCOUNT( [Producto].[Producto].[Producto].Members, 10, [Measures].[Utilidad Total] )
+MEMBER [Measures].[Ventas Top 10] AS
+    SUM( [Top 10 Productos], [Measures].[Ventas Totales] ), FORMAT_STRING = '$#,##0.00'
+MEMBER [Measures].[Utilidad Top 10] AS
+    SUM( [Top 10 Productos], [Measures].[Utilidad Total] ), FORMAT_STRING = '$#,##0.00'
+MEMBER [Measures].[% de la Utilidad del Periodo] AS
+    IIF( [Measures].[Utilidad Total] = 0, NULL,
+         [Measures].[Utilidad Top 10] / [Measures].[Utilidad Total] ), FORMAT_STRING = '0.0%'
+SELECT
+    { [Measures].[Ventas Top 10], [Measures].[Utilidad Top 10],
+      [Measures].[Utilidad Total], [Measures].[% de la Utilidad del Periodo] } ON COLUMNS,
+    NON EMPTY DESCENDANTS( [Fecha].[Calendario].[Año].Members,
+                           [Fecha].[Calendario].[Trimestre],
+                           SELF_AND_BEFORE ) ON ROWS
+FROM [CuboVentas];
