@@ -2,10 +2,7 @@
    DMD941 - Desafío Práctico 2
    Script 02: Carga y exploración de datos
    ---------------------------------------------------------------------
-   Objetivo: conocer las tablas de hechos y dimensiones, sus relaciones y
-   la calidad de los datos, para decidir cuáles alimentan el cubo.
-   Ejecuta cada bloque por separado (selecciónalo y presiona F5) y toma
-   una captura de cada resultado para el informe.
+
    ===================================================================== */
 
 USE AdventureWorksDW2025;

@@ -43,7 +43,7 @@ DMD941-DesafioPractico2/
 │   └── Dashboard_Ventas_AW.pbix      Dashboard de Power BI
 └── docs/
     ├── Informe_DesafioPractico2.pdf  Informe final
-    └── capturas/                     Evidencias gráficas
+
 ```
 
 ## Modelo dimensional
@@ -71,6 +71,4 @@ Utilidad = SalesAmount − TotalProductCost (utilidad bruta).
 5. Ejecutar las consultas de `mdx/consultas_cubo.mdx` en SSMS (conexión Analysis Services).
 6. Abrir `powerbi/Dashboard_Ventas_AW.pbix` (conexión en vivo a `localhost`, base `CuboVentasAW`).
 
-## Principales hallazgos
 
-_[Resume aquí en 3–5 viñetas los hallazgos de la sección 7 del informe.]_

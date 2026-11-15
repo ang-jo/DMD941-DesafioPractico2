@@ -7,6 +7,6 @@ obj/
 *.cache
 *.dwproj.user
 # Respaldos de base de datos (son muy pesados para GitHub)
-*.bak
+#*.bak
 # Archivos temporales de Office / Power BI
 ~$*

@@ -11,7 +11,7 @@
    - Se agrega una sola vez por consulta (GROUP BY) y se calculan rankings
      y variaciones con funciones de ventana (RANK, LAG) en lugar de
      subconsultas repetidas.
-   - Las uniones se hacen por claves enteras (ProductKey, DateKey...), que
+   - Las uniones se hacen por claves enteras (ProductKey, DateKey), que
      están indexadas en el data warehouse.
    - El Top 10 se calcula una vez en una CTE y se reutiliza.
    Para medir el costo: activa SET STATISTICS IO, TIME ON (abajo) y revisa
